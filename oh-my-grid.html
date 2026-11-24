@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16123d">
+  <title>OH MY GRID! — Magic Square Arcade</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fff;
+      --muted: #c8c4e7;
+      --panel: rgba(37, 31, 83, .82);
+      --line: rgba(255,255,255,.13);
+      --purple: #a875ff;
+      --pink: #ff65b5;
+      --yellow: #ffd44f;
+      --green: #59e39a;
+      --red: #ff667e;
+      --gray: #9290ad;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { min-height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: ui-rounded, "Trebuchet MS", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse at 18% 15%, rgba(119, 71, 213, .42), transparent 34rem),
+        radial-gradient(ellipse at 88% 78%, rgba(27, 154, 193, .25), transparent 36rem),
+        linear-gradient(145deg, #17113a 0%, #211754 48%, #101a42 100%);
+    }
+
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid #fff;
+      outline-offset: 3px;
+    }
+
+    .app {
+      width: min(1120px, 100%);
+      min-height: 100vh;
+      margin: auto;
+      padding: 24px clamp(14px, 4vw, 40px) 34px;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .decor {
+      position: fixed;
+      z-index: -1;
+      opacity: .16;
+      font-weight: 900;
+      pointer-events: none;
+      user-select: none;
+      animation: float 6s ease-in-out infinite;
+    }
+    .decor.d1 { top: 10%; left: 3%; font-size: 4rem; color: var(--yellow); }
+    .decor.d2 { top: 22%; right: 6%; font-size: 3rem; color: var(--pink); animation-delay: -2s; }
+    .decor.d3 { bottom: 12%; left: 8%; font-size: 3.5rem; color: #51dfff; animation-delay: -4s; }
+    .decor.d4 { bottom: 8%; right: 9%; font-size: 4rem; color: var(--green); animation-delay: -1s; }
+    @keyframes float { 50% { transform: translateY(-13px) rotate(8deg); } }
+
+    .screen { animation: enter .32s ease both; }
+    @keyframes enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 8px 0 20px;
+      text-align: center;
+    }
+    .brand-mark {
+      display: grid;
+      grid-template-columns: repeat(2, 13px);
+      gap: 3px;
+      transform: rotate(-8deg);
+    }
+    .brand-mark i {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      background: var(--yellow);
+    }
+    .brand-mark i:nth-child(2) { background: var(--pink); }
+    .brand-mark i:nth-child(3) { background: #54dafa; }
+    .brand-mark i:nth-child(4) { background: var(--green); }
+    .brand h1, .brand h2 { margin: 0; line-height: 1; letter-spacing: .035em; }
+    .brand h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); }
+    .brand h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+    .brand .oh { color: var(--yellow); }
+    .brand .grid-word { color: #fff; }
+
+    .tagline {
+      margin: 8px 0 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: clamp(.95rem, 2.5vw, 1.15rem);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: clamp(20px, 4vw, 36px);
+      background: var(--panel);
+      box-shadow: 0 20px 60px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.05);
+      backdrop-filter: blur(12px);
+    }
+
+    .menu-panel {
+      max-width: 760px;
+      margin: 0 auto;
+      text-align: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .hero-title {
+      margin: 0;
+      font-size: clamp(3rem, 11vw, 6.6rem);
+      line-height: .96;
+      letter-spacing: -.055em;
+      font-weight: 1000;
+      text-shadow: 0 7px 0 rgba(78, 42, 144, .48), 0 0 35px rgba(255, 101, 181, .2);
+    }
+    .hero-title .oh { color: var(--yellow); }
+    .hero-title .my { color: var(--pink); }
+    .hero-title .grid { color: #68e1ff; }
+    .hero-subtitle {
+      color: #e6ddff;
+      margin: 16px 0 24px;
+      font-size: clamp(1rem, 3vw, 1.3rem);
+      font-weight: 700;
+    }
+
+    .mini-square {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      width: min(270px, 74vw);
+      margin: 25px auto 28px;
+      transform: rotate(-4deg);
+    }
+    .mini-square span {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      font-size: clamp(1.3rem, 5vw, 2rem);
+      font-weight: 1000;
+      color: #211744;
+      background: var(--yellow);
+      box-shadow: 0 5px 0 rgba(0,0,0,.2);
+      animation: bob 2.8s ease-in-out infinite;
+    }
+    .mini-square span:nth-child(2), .mini-square span:nth-child(6) { background: #67e0ff; animation-delay: -.3s; }
+    .mini-square span:nth-child(3), .mini-square span:nth-child(7) { background: var(--pink); animation-delay: -.7s; }
+    .mini-square span:nth-child(4), .mini-square span:nth-child(8) { background: #b7ff8b; animation-delay: -1s; }
+    .mini-square span:nth-child(5) { background: #c39bff; animation-delay: -.5s; }
+    .mini-square span:nth-child(9) { background: #ff9a68; animation-delay: -1.2s; }
+    @keyframes bob { 50% { transform: translateY(-5px); } }
+
+    .button-stack {
+      width: min(330px, 100%);
+      display: grid;
+      gap: 12px;
+      margin: 0 auto;
+    }
+    .btn {
+      border: 0;
+      border-radius: 14px;
+      padding: 13px 20px;
+      min-height: 48px;
+      color: #211744;
+      background: linear-gradient(135deg, #ffe26c, #ffae57);
+      box-shadow: 0 5px 0 #ab713c, 0 10px 20px rgba(0,0,0,.18);
+      font-weight: 1000;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: transform .14s ease, filter .14s ease, box-shadow .14s ease;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #ab713c; }
+    .btn.primary {
+      color: #251343;
+      background: linear-gradient(135deg, #ff7bc4, #ffbd70);
+      box-shadow: 0 5px 0 #a94c87, 0 10px 22px rgba(0,0,0,.18);
+    }
+    .btn.secondary {
+      color: #fff;
+      background: linear-gradient(135deg, #8062df, #5749b5);
+      box-shadow: 0 5px 0 #3f368d, 0 10px 22px rgba(0,0,0,.18);
+    }
+    .btn.green {
+      color: #143922;
+      background: linear-gradient(135deg, #88ffb7, #45d98e);
+      box-shadow: 0 5px 0 #26945b, 0 10px 22px rgba(0,0,0,.18);
+    }
+    .btn.small { min-height: 40px; padding: 9px 14px; font-size: .88rem; border-radius: 12px; }
+    .btn:disabled { opacity: .48; cursor: not-allowed; transform: none; }
+
+    .screen-heading { text-align: center; margin: 8px 0 22px; }
+    .screen-heading h2 {
+      margin: 0 0 8px;
+      color: var(--yellow);
+      font-size: clamp(1.7rem, 5vw, 2.6rem);
+      letter-spacing: .025em;
+    }
+    .screen-heading p { color: var(--muted); margin: 0; }
+
+    .instructions-layout {
+      max-width: 850px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 22px;
+      align-items: center;
+    }
+    .rules {
+      margin: 0;
+      padding-left: 1.6rem;
+      color: #f1edff;
+      line-height: 1.65;
+    }
+    .rules li { padding: 3px 0 3px 4px; }
+    .rules li::marker { color: var(--yellow); font-weight: 900; }
+    .example-wrap { text-align: center; }
+    .example-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      width: min(230px, 68vw);
+      margin: 10px auto;
+    }
+    .example-grid span {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 2px dashed rgba(255,255,255,.34);
+      border-radius: 12px;
+      color: #b8b4d2;
+      background: rgba(255,255,255,.045);
+      font-size: 1.6rem;
+    }
+    .target-sum {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 10px auto;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255,212,79,.14);
+      border: 1px solid rgba(255,212,79,.4);
+      color: var(--yellow);
+      font-weight: 1000;
+      letter-spacing: .06em;
+    }
+    .legend { display: grid; gap: 8px; text-align: left; margin: 12px auto 0; width: fit-content; color: #e5e1f8; font-size: .92rem; }
+    .legend span { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .dot.good { background: var(--green); box-shadow: 0 0 9px var(--green); }
+    .dot.bad { background: var(--red); }
+    .dot.wait { background: var(--gray); }
+    .instructions-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+
+    .game-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 0 14px;
+    }
+    .game-top .brand { margin: 0; justify-content: flex-start; }
+    .game-top .tagline { margin: 5px 0 0; text-align: left; font-size: .9rem; }
+    .game-stats { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .stat {
+      min-width: 88px;
+      padding: 8px 12px;
+      text-align: center;
+      border-radius: 13px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--line);
+    }
+    .stat b { display: block; color: var(--yellow); font-size: 1.15rem; }
+    .stat small { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .07em; }
+
+    .game-panel { padding: clamp(15px, 3vw, 28px); }
+    .challenge-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 14px;
+      margin-bottom: 15px;
+      background: rgba(255,212,79,.1);
+      border: 1px solid rgba(255,212,79,.24);
+      border-radius: 14px;
+    }
+    .challenge-countdown { color: var(--yellow); font-weight: 1000; letter-spacing: .035em; }
+    .interval-control { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; }
+    .interval-control select {
+      color: white;
+      background: #33266d;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 8px;
+      padding: 6px 8px;
+    }
+
+    .board-layout {
+      width: min(680px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 88px;
+      grid-template-rows: auto auto;
+      gap: 10px 12px;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(6px, 1.8vw, 11px);
+      width: 100%;
+      aspect-ratio: 1;
+      padding: clamp(7px, 2vw, 12px);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: linear-gradient(145deg, rgba(125,94,213,.42), rgba(34,28,82,.7));
+      box-shadow: inset 0 2px 16px rgba(0,0,0,.2), 0 12px 30px rgba(0,0,0,.18);
+      touch-action: none;
+    }
+    .cell {
+      display: grid;
+      place-items: center;
+      position: relative;
+      border-radius: clamp(10px, 2.5vw, 18px);
+      border: 2px dashed rgba(255,255,255,.27);
+      background: rgba(12,9,38,.44);
+      color: #fff;
+      font-size: clamp(2rem, 8vw, 4.1rem);
+      font-weight: 1000;
+      cursor: pointer;
+      transition: background .16s, border-color .16s, transform .16s, box-shadow .16s;
+      user-select: none;
+      touch-action: none;
+    }
+    .cell:hover { border-color: rgba(255,255,255,.65); background: rgba(255,255,255,.1); }
+    .cell.filled { border-style: solid; border-color: rgba(255,255,255,.26); }
+    .cell.selected { outline: 3px solid white; outline-offset: 2px; transform: scale(.96); }
+    .cell.drag-over { border-color: var(--yellow); background: rgba(255,212,79,.22); }
+    .cell .cell-num {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      border-radius: inherit;
+      color: #271b48;
+      background: var(--cell-color, #ffe16b);
+      box-shadow: inset 0 -5px 0 rgba(0,0,0,.13);
+    }
+    .cell:nth-child(3n + 2) .cell-num { --cell-color: #69e2ff; }
+    .cell:nth-child(3n) .cell-num { --cell-color: #ff82c5; }
+    .cell:nth-child(4n) .cell-num { --cell-color: #aaff9a; }
+    .cell:nth-child(5n) .cell-num { --cell-color: #c49bff; }
+
+    .row-indicators { display: grid; grid-template-rows: repeat(3, 1fr); gap: clamp(6px, 1.8vw, 11px); }
+    .sum-indicator {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 13px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.075);
+      color: var(--gray);
+      text-align: center;
+      font-weight: 900;
+      min-width: 0;
+      transition: color .2s, background .2s, box-shadow .2s, transform .2s;
+    }
+    .sum-indicator b { font-size: clamp(.95rem, 3vw, 1.15rem); }
+    .sum-indicator small { font-size: .62rem; letter-spacing: .07em; opacity: .8; }
+    .sum-indicator.good {
+      color: #d7ffe8;
+      background: rgba(44,211,124,.2);
+      border-color: rgba(89,227,154,.65);
+      box-shadow: 0 0 15px rgba(89,227,154,.28), inset 0 0 12px rgba(89,227,154,.12);
+      animation: glow .75s ease-in-out infinite alternate;
+    }
+    .sum-indicator.bad { color: #ffd9df; background: rgba(255,76,108,.2); border-color: rgba(255,102,126,.6); }
+    @keyframes glow { to { box-shadow: 0 0 22px rgba(89,227,154,.45), inset 0 0 17px rgba(89,227,154,.2); } }
+    .col-indicators {
+      grid-column: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(6px, 1.8vw, 11px);
+    }
+    .diag-indicators {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+    .diag-indicators .sum-indicator { min-height: 64px; }
+
+    .pool-title { text-align: center; margin: 22px 0 10px; color: #e9e3ff; font-weight: 900; }
+    .number-pool {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: clamp(5px, 1.3vw, 10px);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .number-card {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      min-width: 0;
+      border: 0;
+      border-radius: clamp(8px, 2vw, 14px);
+      color: #211744;
+      background: var(--card-color, #ffe16b);
+      box-shadow: 0 4px 0 rgba(0,0,0,.24);
+      font-size: clamp(1.1rem, 5vw, 1.8rem);
+      font-weight: 1000;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      transition: transform .14s, filter .14s, opacity .14s;
+    }
+    .number-card:nth-child(3n + 2) { --card-color: #69e2ff; }
+    .number-card:nth-child(3n) { --card-color: #ff82c5; }
+    .number-card:nth-child(4n) { --card-color: #aaff9a; }
+    .number-card:nth-child(5n) { --card-color: #c49bff; }
+    .number-card:hover { transform: translateY(-3px) rotate(-3deg); filter: brightness(1.08); }
+    .number-card:active { cursor: grabbing; }
+    .number-card.used { opacity: .34; filter: grayscale(.85); box-shadow: none; }
+    .number-card.selected { outline: 3px solid white; outline-offset: 2px; transform: translateY(-4px); }
+    .number-card.dragging { opacity: .45; }
+
+    .game-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; margin: 20px 0 0; }
+    .hint-note {
+      min-height: 24px;
+      margin: 11px auto 0;
+      color: var(--yellow);
+      text-align: center;
+      font-weight: 800;
+    }
+    .tip { margin: 8px auto 0; text-align: center; color: var(--muted); font-size: .83rem; }
+
+    .about-text { max-width: 650px; margin: 0 auto 24px; color: #eeeaff; line-height: 1.75; text-align: center; font-size: 1.05rem; }
+    .center-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+
+    .modal-backdrop {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      overflow-y: auto;
+      padding: 18px;
+      background: rgba(8,6,26,.76);
+      backdrop-filter: blur(8px);
+      animation: fade .2s ease both;
+    }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      position: relative;
+      width: min(470px, 100%);
+      padding: clamp(22px, 5vw, 34px);
+      text-align: center;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 24px;
+      background: linear-gradient(145deg, #33256d, #211848);
+      box-shadow: 0 25px 90px rgba(0,0,0,.5);
+      animation: pop .28s cubic-bezier(.2,.8,.2,1) both;
+    }
+    @keyframes pop { from { transform: scale(.9) translateY(12px); opacity: .3; } to { transform: none; opacity: 1; } }
+    .modal h2 { color: var(--yellow); font-size: clamp(1.65rem, 6vw, 2.2rem); margin: 0 0 6px; }
+    .modal p { color: #e3def7; margin: 8px 0 16px; }
+    .question {
+      font-size: clamp(1.4rem, 6vw, 2rem);
+      font-weight: 1000;
+      color: white;
+      padding: 13px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      margin: 18px 0;
+    }
+    .answer-form { display: flex; gap: 9px; }
+    .answer-form input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px;
+      color: #251b49;
+      background: #fff;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      font-weight: 900;
+    }
+    .answer-form .btn { flex: 0 0 auto; }
+    .feedback { min-height: 28px; margin: 12px 0 0 !important; font-weight: 1000; }
+    .feedback.good { color: var(--green); }
+    .feedback.bad { color: #ff8798; }
+    .modal-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .hint-counter { color: var(--yellow); font-weight: 1000; }
+
+    .victory-panel { max-width: 900px; margin: auto; text-align: center; overflow: hidden; position: relative; }
+    .victory-title {
+      margin: 2px 0 6px;
+      color: var(--yellow);
+      font-size: clamp(2rem, 8vw, 4rem);
+      text-shadow: 0 0 22px rgba(255,212,79,.35);
+      animation: celebrate .7s ease-in-out infinite alternate;
+    }
+    @keyframes celebrate { to { transform: scale(1.035) rotate(-1deg); } }
+    .victory-subtitle { margin: 0 0 18px; font-size: clamp(1rem, 3vw, 1.3rem); color: #f2eaff; font-weight: 900; }
+    .solution-grid {
+      width: min(300px, 75vw);
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 7px;
+      margin: 20px auto;
+    }
+    .solution-grid span {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      color: #153923;
+      background: #88ffb7;
+      border: 1px solid #caffdc;
+      box-shadow: 0 0 18px rgba(89,227,154,.45), inset 0 -4px rgba(0,0,0,.1);
+      font-size: clamp(1.5rem, 6vw, 2.2rem);
+      font-weight: 1000;
+    }
+    .victory-stats { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .victory-stats .stat { min-width: 125px; }
+    .math-explanation { max-width: 600px; margin: 18px auto; color: #e9e4fa; line-height: 1.6; }
+    #confetti {
+      position: fixed;
+      z-index: 30;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .confetti-piece {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 16px;
+      border-radius: 3px;
+      animation: confetti-fall var(--duration) linear forwards;
+    }
+    @keyframes confetti-fall {
+      to { transform: translate3d(var(--drift), 110vh, 0) rotate(900deg); opacity: .9; }
+    }
+    .toast {
+      position: fixed;
+      z-index: 15;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: calc(100vw - 30px);
+      padding: 12px 18px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px;
+      background: #30245f;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+      color: #fff;
+      text-align: center;
+      font-weight: 900;
+      animation: pop .2s ease both;
+    }
+
+    .drag-ghost {
+      position: fixed;
+      z-index: 50;
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: #211744;
+      background: var(--yellow);
+      box-shadow: 0 12px 24px rgba(0,0,0,.32);
+      font-size: 1.6rem;
+      font-weight: 1000;
+      pointer-events: none;
+      transform: translate(-50%, -50%) rotate(-5deg);
+    }
+
+    @media (max-width: 650px) {
+      .app { padding-top: 14px; }
+      .instructions-layout { grid-template-columns: 1fr; }
+      .instructions-layout .panel { padding: 18px; }
+      .game-top { align-items: flex-start; flex-direction: column; }
+      .game-stats { justify-content: flex-start; width: 100%; }
+      .stat { min-width: 78px; }
+      .board-layout { grid-template-columns: minmax(0, 1fr) 64px; gap: 7px; }
+      .diag-indicators .sum-indicator { min-height: 54px; }
+      .sum-indicator small { font-size: .54rem; }
+      .number-pool { gap: 5px; }
+      .challenge-bar { align-items: flex-start; flex-direction: column; }
+      .answer-form { flex-direction: column; }
+      .answer-form .btn { width: 100%; }
+    }
+    @media (max-width: 380px) {
+      .board-layout { grid-template-columns: minmax(0, 1fr) 56px; gap: 5px; }
+      .game-panel { padding: 12px; }
+      .sum-indicator b { font-size: .85rem; }
+      .sum-indicator small { font-size: .48rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <span class="decor d1" aria-hidden="true">+</span>
+  <span class="decor d2" aria-hidden="true">×</span>
+  <span class="decor d3" aria-hidden="true">÷</span>
+  <span class="decor d4" aria-hidden="true">= 15</span>
+  <div class="app">
+    <main>
+      <section id="menuScreen" class="screen">
+        <div class="panel menu-panel">
+          <h1 class="hero-title"><span class="oh">OH</span> <span class="my">MY</span><br><span class="grid">GRID!</span></h1>
+          <p class="hero-subtitle">Think smart, place right, and make it 15!</p>
+          <div class="mini-square" aria-label="Colorful number grid illustration">
+            <span>8</span><span>1</span><span>6</span>
+            <span>3</span><span>5</span><span>7</span>
+            <span>4</span><span>9</span><span>2</span>
+          </div>
+          <div class="button-stack">
+            <button class="btn primary" id="playButton">▶ PLAY GAME</button>
+            <button class="btn" id="menuHowButton">HOW TO PLAY</button>
+            <button class="btn secondary" id="aboutButton">ABOUT</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="instructionsScreen" class="screen" hidden>
+        <header class="screen-heading">
+          <h2>HOW TO PLAY OH MY GRID!</h2>
+          <p>Think it through. Place each number. Make every line 15!</p>
+        </header>
+        <div class="panel instructions-layout">
+          <ol class="rules">
+            <li>Your goal is to complete a 3×3 Magic Square.</li>
+            <li>Use the numbers from 1 to 9.</li>
+            <li>Place each number into one of the nine boxes.</li>
+            <li>Each number can only be used once.</li>
+            <li>Every row, column, and diagonal must total exactly 15.</li>
+            <li>Watch the sum counters to monitor your progress.</li>
+            <li>Complete all eight lines to win!</li>
+          </ol>
+          <div class="example-wrap">
+            <strong>YOUR MAGIC SQUARE</strong>
+            <div class="example-grid" aria-label="Example of an empty 3 by 3 grid">
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+            </div>
+            <div class="target-sum">TARGET SUM: 15</div>
+            <div class="legend">
+              <span><i class="dot good"></i> GREEN = Correct! The total is 15.</span>
+              <span><i class="dot bad"></i> RED = Not yet! The completed line isn't 15.</span>
+              <span><i class="dot wait"></i> GRAY = Incomplete line.</span>
+            </div>
+          </div>
+        </div>
+        <div class="instructions-actions">
+          <button class="btn secondary" id="backMenuButton">← BACK TO MENU</button>
+          <button class="btn primary" id="letsPlayButton">LET'S PLAY! →</button>
+        </div>
+      </section>
+
+      <section id="aboutScreen" class="screen" hidden>
+        <header class="screen-heading">
+          <h2>ABOUT OH MY GRID!</h2>
+          <p>A little logic. A little math. A whole lot of 15.</p>
+        </header>
+        <div class="panel">
+          <p class="about-text">OH MY GRID! is an interactive mathematics puzzle game that challenges players to arrange numbers from 1 to 9 in a 3×3 Magic Square. Players must use logical thinking, problem-solving skills, and basic mathematics to make every row, column, and diagonal equal 15.</p>
+          <div class="center-actions">
+            <button class="btn secondary" id="aboutBackButton">← BACK TO MENU</button>
+            <button class="btn primary" id="aboutPlayButton">PLAY GAME</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="gameScreen" class="screen" hidden>
+        <div class="game-top">
+          <div>
+            <div class="brand">
+              <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              <h2><span class="oh">OH MY</span> <span class="grid-word">GRID!</span></h2>
+            </div>
+            <p class="tagline">Can you solve the magic square?</p>
+          </div>
+          <div class="game-stats">
+            <div class="stat"><b id="moveCount">0</b><small>MOVES</small></div>
+            <div class="stat"><b id="gameTime">00:00</b><small>TIME</small></div>
+            <div class="stat"><b class="hint-counter" id="hintCount">0</b><small>HINTS</small></div>
+          </div>
+        </div>
+
+        <div class="panel game-panel">
+          <div class="challenge-bar">
+            <div class="challenge-countdown">NEXT MATH CHALLENGE: <span id="challengeCountdown">01:00</span></div>
+            <label class="interval-control" for="challengeInterval">
+              Challenge interval
+              <select id="challengeInterval" aria-label="Math challenge interval">
+                <option value="30">30 seconds</option>
+                <option value="45">45 seconds</option>
+                <option value="60" selected>60 seconds</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="board-layout">
+            <div class="board" id="board" aria-label="Magic square game board">
+              <div class="cell" data-index="0" role="button" tabindex="0" aria-label="Top left, empty"></div>
+              <div class="cell" data-index="1" role="button" tabindex="0" aria-label="Top middle, empty"></div>
+              <div class="cell" data-index="2" role="button" tabindex="0" aria-label="Top right, empty"></div>
+              <div class="cell" data-index="3" role="button" tabindex="0" aria-label="Middle left, empty"></div>
+              <div class="cell" data-index="4" role="button" tabindex="0" aria-label="Center, empty"></div>
+              <div class="cell" data-index="5" role="button" tabindex="0" aria-label="Middle right, empty"></div>
+              <div class="cell" data-index="6" role="button" tabindex="0" aria-label="Bottom left, empty"></div>
+              <div class="cell" data-index="7" role="button" tabindex="0" aria-label="Bottom middle, empty"></div>
+              <div class="cell" data-index="8" role="button" tabindex="0" aria-label="Bottom right, empty"></div>
+            </div>
+
+            <div class="row-indicators" aria-label="Row totals">
+              <div class="sum-indicator" data-line="row0"><small>ROW 1</small><b>— / 15</b></div>
+              <div class="sum-indicator" data-line="row1"><small>ROW 2</small><b>— / 15</b></div>
+              <div class="sum-indicator" data-line="row2"><small>ROW 3</small><b>— / 15</b></div>
+            </div>
+
+            <div class="col-indicators" aria-label="Column totals">
+              <div class="sum-indicator" data-line="col0"><small>COL 1</small><b>— / 15</b></div>
+              <div class="sum-indicator" data-line="col1"><small>COL 2</small><b>— / 15</b></div>
+              <div class="sum-indicator" data-line="col2"><small>COL 3</small><b>— / 15</b></div>
+            </div>
+
+            <div class="diag-indicators" aria-label="Diagonal totals">
+              <div class="sum-indicator" data-line="diag0"><small>↘ DIAG</small><b>— / 15</b></div>
+              <div class="sum-indicator" data-line="diag1"><small>↙ DIAG</small><b>— / 15</b></div>
+            </div>
+          </div>
+
+          <p class="pool-title">Choose a number, then place it — or drag it to a square</p>
+          <div class="number-pool" id="numberPool" aria-label="Available numbers">
+            <button class="number-card" data-number="1" aria-label="Number 1">1</button>
+            <button class="number-card" data-number="2" aria-label="Number 2">2</button>
+            <button class="number-card" data-number="3" aria-label="Number 3">3</button>
+            <button class="number-card" data-number="4" aria-label="Number 4">4</button>
+            <button class="number-card" data-number="5" aria-label="Number 5">5</button>
+            <button class="number-card" data-number="6" aria-label="Number 6">6</button>
+            <button class="number-card" data-number="7" aria-label="Number 7">7</button>
+            <button class="number-card" data-number="8" aria-label="Number 8">8</button>
+            <button class="number-card" data-number="9" aria-label="Number 9">9</button>
+          </div>
+          <p class="tip">Tap a used number to select it from the grid. Tap an occupied square to return it to the number tray.</p>
+
+          <div class="game-actions">
+            <button class="btn small" id="resetButton">↻ RESET</button>
+            <button class="btn small green" id="useHintButton" disabled>✦ USE HINT (0)</button>
+            <button class="btn small secondary" id="gameHowButton">HOW TO PLAY</button>
+            <button class="btn small secondary" id="gameMenuButton">BACK TO MENU</button>
+          </div>
+          <p class="hint-note" id="hintNote" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="victoryScreen" class="screen" hidden>
+        <div class="panel victory-panel">
+          <h1 class="victory-title">OH MY GRID! YOU DID IT!</h1>
+          <p class="victory-subtitle">YOU CRACKED THE MAGIC SQUARE!</p>
+          <div class="victory-stats">
+            <div class="stat"><b id="finalTime">00:00</b><small>FINAL TIME</small></div>
+            <div class="stat"><b id="finalMoves">0</b><small>MOVES</small></div>
+          </div>
+          <div class="solution-grid" aria-label="Completed magic square solution">
+            <span>8</span><span>1</span><span>6</span>
+            <span>3</span><span>5</span><span>7</span>
+            <span>4</span><span>9</span><span>2</span>
+          </div>
+          <p class="math-explanation">Every row, column, and diagonal adds up to 15. That's the magic of a 3×3 Magic Square!</p>
+          <div class="center-actions">
+            <button class="btn primary" id="playAgainButton">▶ PLAY AGAIN</button>
+            <button class="btn secondary" id="victoryMenuButton">MAIN MENU</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="challengeModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="challengeTitle">
+      <h2 id="challengeTitle">EARN YOUR HINT!</h2>
+      <p>Want a clue? Solve this first!</p>
+      <div class="question" id="mathQuestion"></div>
+      <form class="answer-form" id="answerForm">
+        <input id="answerInput" type="number" step="any" inputmode="decimal" autocomplete="off" placeholder="Your answer" aria-label="Your answer" required>
+        <button class="btn primary" type="submit">SUBMIT</button>
+      </form>
+      <p class="feedback" id="answerFeedback" aria-live="polite"></p>
+      <div class="modal-actions" id="earnedActions" hidden>
+        <button class="btn green" id="useEarnedHintButton">✦ USE HINT NOW</button>
+        <button class="btn secondary" id="saveEarnedHintButton">SAVE HINT &amp; RETURN</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+      const screens = {
+        menu: $("#menuScreen"),
+        instructions: $("#instructionsScreen"),
+        about: $("#aboutScreen"),
+        game: $("#gameScreen"),
+        victory: $("#victoryScreen")
+      };
+
+      const lines = [
+        { id: "row0", cells: [0, 1, 2] },
+        { id: "row1", cells: [3, 4, 5] },
+        { id: "row2", cells: [6, 7, 8] },
+        { id: "col0", cells: [0, 3, 6] },
+        { id: "col1", cells: [1, 4, 7] },
+        { id: "col2", cells: [2, 5, 8] },
+        { id: "diag0", cells: [0, 4, 8] },
+        { id: "diag1", cells: [2, 4, 6] }
+      ];
+
+      const hintMessages = [
+        "Try placing 5 in the center of the grid.",
+        "Every row must have a total of 15.",
+        "Opposite numbers around the center should add up to 10.",
+        "Don't forget to check both diagonal lines!",
+        "Think about which numbers should go in the corners."
+      ];
+
+      let board = Array(9).fill(null);
+      let moves = 0;
+      let elapsedSeconds = 0;
+      let availableHints = 0;
+      let gameStarted = false;
+      let currentScreen = "menu";
+      let instructionReturn = "menu";
+      let intervalSeconds = 60;
+      let challengeRemaining = 60;
+      let challengeOpen = false;
+      let challengeEarned = false;
+      let currentAnswer = null;
+      let selectedSource = null;
+      let toastTimeout = null;
+      let dragState = null;
+      let ghost = null;
+
+      function showScreen(name) {
+        currentScreen = name;
+        Object.entries(screens).forEach(([key, element]) => {
+          element.hidden = key !== name;
+        });
+      }
+
+      function formatTime(total) {
+        const minutes = Math.floor(total / 60).toString().padStart(2, "0");
+        const seconds = (total % 60).toString().padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function openInstructions(returnTo) {
+        instructionReturn = returnTo;
+        showScreen("instructions");
+      }
+
+      function startGame() {
+        if (!gameStarted) {
+          board = Array(9).fill(null);
+          moves = 0;
+          elapsedSeconds = 0;
+          availableHints = 0;
+          intervalSeconds = Number($("#challengeInterval").value) || 60;
+          challengeRemaining = intervalSeconds;
+          gameStarted = true;
+        }
+        challengeOpen = false;
+        selectedSource = null;
+        $("#challengeModal").hidden = true;
+        showScreen("game");
+        render();
+      }
+
+      function updateBoard() {
+        $$(".cell").forEach((cell, index) => {
+          const value = board[index];
+          cell.innerHTML = value === null ? "" : `<span class="cell-num">${value}</span>`;
+          cell.classList.toggle("filled", value !== null);
+          cell.classList.toggle("selected", selectedSource?.type === "cell" && selectedSource.index === index);
+          cell.setAttribute("aria-label", `${["Top", "Middle", "Bottom"][Math.floor(index / 3)]} ${["left", "middle", "right"][index % 3]}, ${value === null ? "empty" : `number ${value}`}`);
+        });
+
+        $$(".number-card").forEach(card => {
+          const value = Number(card.dataset.number);
+          const isUsed = board.includes(value);
+          card.classList.toggle("used", isUsed);
+          card.classList.toggle("selected", selectedSource?.type === "tray" && selectedSource.value === value);
+          card.setAttribute("aria-pressed", String(selectedSource?.type === "tray" && selectedSource.value === value));
+        });
+
+        updateSums();
+      }
+
+      function updateSums() {
+        for (const line of lines) {
+          const values = line.cells.map(index => board[index]);
+          const complete = values.every(value => value !== null);
+          const sum = values.reduce((total, value) => total + (value || 0), 0);
+          const indicator = $(`[data-line="${line.id}"]`);
+          indicator.classList.remove("good", "bad");
+          if (complete) {
+            indicator.querySelector("b").textContent = `${sum} / 15`;
+            indicator.classList.add(sum === 15 ? "good" : "bad");
+          } else {
+            indicator.querySelector("b").textContent = sum === 0 ? "— / 15" : `${sum} / 15`;
+          }
+        }
+      }
+
+      function render() {
+        updateBoard();
+        $("#moveCount").textContent = moves;
+        $("#gameTime").textContent = formatTime(elapsedSeconds);
+        $("#hintCount").textContent = availableHints;
+        $("#useHintButton").disabled = availableHints === 0;
+        $("#useHintButton").textContent = `✦ USE HINT (${availableHints})`;
+        $("#challengeCountdown").textContent = formatTime(challengeRemaining);
+      }
+
+      function isVictory() {
+        if (board.some(value => value === null)) return false;
+        if (new Set(board).size !== 9) return false;
+        return lines.every(line => line.cells.reduce((sum, index) => sum + board[index], 0) === 15);
+      }
+
+      function afterBoardChange() {
+        selectedSource = null;
+        render();
+        if (isVictory()) winGame();
+      }
+
+      function placeFromTray(value, targetIndex) {
+        const existingIndex = board.indexOf(value);
+        if (existingIndex !== -1) return;
+        board[targetIndex] = value;
+        moves++;
+        afterBoardChange();
+      }
+
+      function moveFromCell(sourceIndex, targetIndex) {
+        if (sourceIndex === targetIndex || board[sourceIndex] === null) return;
+        [board[sourceIndex], board[targetIndex]] = [board[targetIndex], board[sourceIndex]];
+        moves++;
+        afterBoardChange();
+      }
+
+      function sourceAtElement(element) {
+        if (!element) return null;
+        const cell = element.closest?.(".cell");
+        if (cell) {
+          const index = Number(cell.dataset.index);
+          if (board[index] !== null) return { type: "cell", index };
+        }
+        const card = element.closest?.(".number-card");
+        if (card) {
+          const value = Number(card.dataset.number);
+          const existingIndex = board.indexOf(value);
+          return existingIndex === -1
+            ? { type: "tray", value }
+            : { type: "cell", index: existingIndex };
+        }
+        return null;
+      }
+
+      function selectSource(source) {
+        if (!source) return;
+        if (source.type === "cell" && board[source.index] === null) return;
+
+        if (selectedSource &&
+            selectedSource.type === source.type &&
+            (source.type === "cell"
+              ? selectedSource.index === source.index
+              : selectedSource.value === source.value)) {
+          selectedSource = null;
+        } else {
+          selectedSource = source;
+        }
+        updateBoard();
+      }
+
+      function tapCell(index) {
+        if (selectedSource) {
+          if (selectedSource.type === "tray") {
+            placeFromTray(selectedSource.value, index);
+            return;
+          }
+          moveFromCell(selectedSource.index, index);
+          return;
+        }
+
+        if (board[index] !== null) {
+          board[index] = null;
+          moves++;
+          afterBoardChange();
+        }
+      }
+
+      function dropSource(source, targetIndex) {
+        if (!source || targetIndex < 0 || targetIndex > 8) return;
+        if (source.type === "tray") placeFromTray(source.value, targetIndex);
+        else moveFromCell(source.index, targetIndex);
+      }
+
+      function resetBoard() {
+        board = Array(9).fill(null);
+        moves = 0;
+        elapsedSeconds = 0;
+        selectedSource = null;
+        $("#hintNote").textContent = "";
+        render();
+        showToast("Grid reset. Your earned hints are saved!");
+      }
+
+      function showToast(message) {
+        const toast = $("#toast");
+        toast.textContent = message;
+        toast.hidden = false;
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => { toast.hidden = true; }, 2800);
+      }
+
+      function makeQuestion() {
+        const type = Math.floor(Math.random() * 6);
+        let a, b;
+        switch (type) {
+          case 0:
+            a = 12 + Math.floor(Math.random() * 50);
+            b = 10 + Math.floor(Math.random() * 40);
+            return { text: `${a} + ${b} = ?`, answer: a + b };
+          case 1:
+            a = 60 + Math.floor(Math.random() * 50);
+            b = 10 + Math.floor(Math.random() * Math.min(40, a - 9));
+            return { text: `${a} − ${b} = ?`, answer: a - b };
+          case 2:
+            a = 3 + Math.floor(Math.random() * 10);
+            b = 2 + Math.floor(Math.random() * 9);
+            return { text: `${a} × ${b} = ?`, answer: a * b };
+          case 3:
+            b = 2 + Math.floor(Math.random() * 10);
+            a = b * (2 + Math.floor(Math.random() * 10));
+            return { text: `${a} ÷ ${b} = ?`, answer: a / b };
+          case 4:
+            a = 2 + Math.floor(Math.random() * 8);
+            b = 2 + Math.floor(Math.random() * 9);
+            const x = 2 + Math.floor(Math.random() * 10);
+            return { text: `${a}x + ${b} = ${a * x + b}. Find x.`, answer: x };
+          default:
+            a = 2 + Math.floor(Math.random() * 5);
+            return { text: `What comes next? ${a}, ${a * 2}, ${a * 4}, ${a * 8}, __`, answer: a * 16 };
+        }
+      }
+
+      function openChallenge() {
+        if (challengeOpen || currentScreen !== "game") return;
+        challengeOpen = true;
+        challengeEarned = false;
+        currentAnswer = makeQuestion().answer;
+        $("#mathQuestion").textContent = makeQuestionTextForAnswer(currentAnswer);
+        $("#answerInput").value = "";
+        $("#answerFeedback").textContent = "";
+        $("#answerFeedback").className = "feedback";
+        $("#earnedActions").hidden = true;
+        $("#answerForm").hidden = false;
+        $("#challengeModal").hidden = false;
+        $("#answerInput").focus();
+        showToast("Math challenge time! Solve it to earn a hint.");
+      }
+
+      function makeQuestionTextForAnswer(answer) {
+        // Use the question paired with this answer. Kept separately so every type is generated freshly.
+        return activeQuestionText || `${answer} = ?`;
+      }
+
+      let activeQuestionText = "";
+      function triggerChallenge() {
+        const question = makeQuestion();
+        currentAnswer = question.answer;
+        activeQuestionText = question.text;
+        challengeOpen = true;
+        challengeEarned = false;
+        $("#mathQuestion").textContent = question.text;
+        $("#answerInput").value = "";
+        $("#answerFeedback").textContent = "";
+        $("#answerFeedback").className = "feedback";
+        $("#earnedActions").hidden = true;
+        $("#answerForm").hidden = false;
+        $("#challengeModal").hidden = false;
+        $("#answerInput").focus();
+        showToast("Math challenge time! Solve it to earn a hint.");
+      }
+
+      function closeChallenge(restartCountdown) {
+        challengeOpen = false;
+        $("#challengeModal").hidden = true;
+        if (restartCountdown) challengeRemaining = intervalSeconds;
+        render();
+      }
+
+      function showHint() {
+        if (availableHints <= 0) return;
+        availableHints--;
+        const hint = hintMessages[Math.floor(Math.random() * hintMessages.length)];
+        $("#hintNote").textContent = `✦ HINT: ${hint}`;
+        render();
+      }
+
+      function winGame() {
+        showScreen("victory");
+        $("#finalTime").textContent = formatTime(elapsedSeconds);
+        $("#finalMoves").textContent = moves;
+        celebrate();
+        playVictorySound();
+      }
+
+      function celebrate() {
+        const container = $("#confetti");
+        container.innerHTML = "";
+        const colors = ["#ffd44f", "#ff65b5", "#68e1ff", "#59e39a", "#b58cff", "#ff896a"];
+        for (let i = 0; i < 95; i++) {
+          const piece = document.createElement("i");
+          piece.className = "confetti-piece";
+          piece.style.left = `${Math.random() * 100}%`;
+          piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+          piece.style.setProperty("--duration", `${2.5 + Math.random() * 3}s`);
+          piece.style.setProperty("--drift", `${Math.random() * 240 - 120}px`);
+          piece.style.animationDelay = `${Math.random() * 1.2}s`;
+          container.appendChild(piece);
+        }
+        setTimeout(() => { container.innerHTML = ""; }, 6500);
+      }
+
+      function playVictorySound() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const context = new AudioContext();
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((frequency, index) => {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.type = "triangle";
+            oscillator.frequency.value = frequency;
+            gain.gain.setValueAtTime(.0001, context.currentTime + index * .13);
+            gain.gain.exponentialRampToValueAtTime(.14, context.currentTime + index * .13 + .025);
+            gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + index * .13 + .32);
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.start(context.currentTime + index * .13);
+            oscillator.stop(context.currentTime + index * .13 + .34);
+          });
+          setTimeout(() => context.close(), 1800);
+        } catch (_) {
+          // Sound is optional; the visual celebration still works if audio is unavailable.
+        }
+      }
+
+      function newGameFromVictory() {
+        gameStarted = false;
+        startGame();
+      }
+
+      $("#playButton").addEventListener("click", () => openInstructions("new"));
+      $("#menuHowButton").addEventListener("click", () => openInstructions("new"));
+      $("#backMenuButton").addEventListener("click", () => showScreen("menu"));
+      $("#letsPlayButton").addEventListener("click", () => {
+        if (instructionReturn === "game" && gameStarted) {
+          showScreen("game");
+          render();
+        } else {
+          startGame();
+        }
+      });
+      $("#aboutButton").addEventListener("click", () => showScreen("about"));
+      $("#aboutBackButton").addEventListener("click", () => showScreen("menu"));
+      $("#aboutPlayButton").addEventListener("click", () => openInstructions("new"));
+
+      $("#gameHowButton").addEventListener("click", () => openInstructions("game"));
+      $("#gameMenuButton").addEventListener("click", () => showScreen("menu"));
+      $("#resetButton").addEventListener("click", resetBoard);
+      $("#useHintButton").addEventListener("click", showHint);
+      $("#playAgainButton").addEventListener("click", newGameFromVictory);
+      $("#victoryMenuButton").addEventListener("click", () => showScreen("menu"));
+
+      $("#challengeInterval").addEventListener("change", event => {
+        intervalSeconds = Math.max(30, Math.min(60, Number(event.target.value) || 60));
+        if (!challengeOpen) challengeRemaining = intervalSeconds;
+        render();
+      });
+
+      $("#answerForm").addEventListener("submit", event => {
+        event.preventDefault();
+        if (challengeEarned) return;
+        const raw = $("#answerInput").value.trim();
+        const submitted = Number(raw);
+        const feedback = $("#answerFeedback");
+
+        if (raw !== "" && Number.isFinite(submitted) && Math.abs(submitted - Number(currentAnswer)) < 1e-9) {
+          challengeEarned = true;
+          availableHints++;
+          feedback.textContent = "CORRECT! YOU EARNED A HINT!";
+          feedback.className = "feedback good";
+          $("#answerForm").hidden = true;
+          $("#earnedActions").hidden = false;
+          render();
+        } else {
+          feedback.textContent = "OOPS! TRY AGAIN!";
+          feedback.className = "feedback bad";
+          $("#answerInput").select();
+        }
+      });
+
+      $("#useEarnedHintButton").addEventListener("click", () => {
+        closeChallenge(true);
+        showHint();
+      });
+      $("#saveEarnedHintButton").addEventListener("click", () => {
+        closeChallenge(true);
+        showToast("Hint saved! Use it whenever you're ready.");
+      });
+
+      // Pointer-based drag-and-drop works with a mouse, stylus, or touchscreen.
+      document.addEventListener("pointerdown", event => {
+        if (currentScreen !== "game" || challengeOpen) return;
+        const source = sourceAtElement(event.target);
+        if (!source) return;
+        dragState = {
+          source,
+          startX: event.clientX,
+          startY: event.clientY,
+          dragging: false
+        };
+      });
+
+      document.addEventListener("pointermove", event => {
+        if (!dragState) return;
+        const distance = Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY);
+        if (!dragState.dragging && distance > 8) {
+          dragState.dragging = true;
+          if (dragState.source.type === "cell") {
+            $(`.cell[data-index="${dragState.source.index}"]`).classList.add("selected");
+          } else {
+            $(`.number-card[data-number="${dragState.source.value}"]`).classList.add("dragging");
+          }
+          ghost = document.createElement("div");
+          ghost.className = "drag-ghost";
+          ghost.textContent = dragState.source.type === "cell"
+            ? board[dragState.source.index]
+            : dragState.source.value;
+          document.body.appendChild(ghost);
+        }
+        if (dragState.dragging && ghost) {
+          ghost.style.left = `${event.clientX}px`;
+          ghost.style.top = `${event.clientY}px`;
+          $$(".cell.drag-over").forEach(cell => cell.classList.remove("drag-over"));
+          const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.(".cell");
+          if (target) target.classList.add("drag-over");
+        }
+      });
+
+      document.addEventListener("pointerup", event => {
+        if (!dragState) return;
+        const state = dragState;
+        dragState = null;
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        const cell = target?.closest?.(".cell");
+        $$(".cell.drag-over").forEach(item => item.classList.remove("drag-over"));
+        $$(".number-card.dragging").forEach(item => item.classList.remove("dragging"));
+        if (ghost) {
+          ghost.remove();
+          ghost = null;
+        }
+
+        if (state.dragging) {
+          if (cell) dropSource(state.source, Number(cell.dataset.index));
+        } else if (target?.closest?.(".number-card")) {
+          selectSource(sourceAtElement(target));
+        } else if (cell) {
+          tapCell(Number(cell.dataset.index));
+        }
+      });
+
+      // Keyboard users can select numbers and operate grid cells with Enter or Space.
+      $$(".cell").forEach(cell => {
+        cell.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            tapCell(Number(cell.dataset.index));
+          }
+        });
+      });
+      $$(".number-card").forEach(card => {
+        card.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectSource(sourceAtElement(card));
+          }
+        });
+      });
+
+      // Active play timers pause while menus or the challenge dialog are open.
+      setInterval(() => {
+        if (currentScreen !== "game" || challengeOpen) return;
+        elapsedSeconds++;
+        challengeRemaining--;
+        if (challengeRemaining <= 0) {
+          challengeRemaining = 0;
+          render();
+          triggerChallenge();
+          return;
+        }
+        render();
+      }, 1000);
+
+      render();
+    })();
+  </script>
+</body>
+</html>
